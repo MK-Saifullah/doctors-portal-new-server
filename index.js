@@ -27,16 +27,45 @@ async function run() {
          * app.patch('/bookingData/:id)
          * app.delete('/bookingData/:id)
          */
+
+        //use aggregate to query multiple collections and then merge
         app.get('/bookingData', async (req, res) => {
+            date = req.query.date;
+            // console.log(date)
             const query = {};
             const cursor = await database.find(query).toArray()
-            console.log(cursor)
+            // console.log(cursor)
+
+            //get the bookings of the provided date
+            const bookingQuery = {appointmentDate: date}
+            const alreadyBooked = await bookingsCollection.find(bookingQuery).toArray();
+            //code carefully
+            cursor.forEach(option => {
+                const optionBooked = alreadyBooked.filter(book => book.treatment === option.name)
+                const bookedSlots = optionBooked.map(book => book.slot)
+                const remainingSlots = option.slots.filter(slot => !bookedSlots.includes(slot))
+                option.slots = remainingSlots;
+                console.log( date, option.name, remainingSlots.length)
+            })
             res.send(cursor)
         })
 
         app.post('/appointmentsData', async (req, res) => {
-            const user = req.body;
-            const result = await bookingsCollection.insertOne(user);
+            const booking = req.body;
+            // console.log(booking)
+            const query = {
+                appointmentDate: booking.appointmentDate,
+                email: booking.email,
+                treatment: booking.treatment,
+            }
+            const alreadyBooked = await bookingsCollection.find(query).toArray();
+            // console.log(alreadyBooked)
+            if(alreadyBooked.length > 0) {
+                const message = `You have already booked on ${booking.appointmentDate}`;
+                return res.send({acknowledged: false, message})
+            }
+
+            const result = await bookingsCollection.insertOne(booking);
             console.log(result)
             res.send(result)
         })
