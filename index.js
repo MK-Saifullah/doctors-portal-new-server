@@ -42,6 +42,7 @@ async function run() {
         const database = client.db("doctorsPortal").collection("bookingData")
         const bookingsCollection = client.db("doctorsPortal").collection("appointmentsData")
         const usersCollection = client.db("doctorsPortal").collection("users")
+        const doctorsCollection = client.db("doctorsPortal").collection("doctors")
         /**
          * API Naming conventions
          * app.get('/bookingData)
@@ -154,6 +155,12 @@ async function run() {
             res.send(result)
         })
 
+        app.get('/appointmentSpecialty', async (req, res) => {
+            const query = {};
+            const result = await database.find(query).project({name: 1}).toArray();
+            res.send(result)
+        })
+
         //JWT token
         app.get('/jwt', async (req, res) => {
             const email = req.query.email;
@@ -178,8 +185,9 @@ async function run() {
         const query = {}
         const users = await usersCollection.find(query).toArray()
         res.send(users)
-
        })
+
+
 
     //    app.get('/users/admin/:email', async (req, res) => {
     //     const email = req.params.email;
@@ -194,7 +202,7 @@ async function run() {
         const user = await usersCollection.findOne(query);
 
         if (user?.role !== 'admin') {
-            return res.status(403).send({ message: 'forbidden access' })
+           
         }
 
         const id = req.params.id;
@@ -214,6 +222,28 @@ async function run() {
         const query = {email};
        const user = await usersCollection.findOne(query)
         res.send({isAdmin: user?.role === 'admin'})
+    })
+
+    //Image post
+    app.post('/doctors', async (req, res) => {
+        const doctor = req.body;
+        const result = await doctorsCollection.insertOne(doctor)
+        res.send(result)
+    })
+
+    app.get('/doctors', async (req, res) => {
+        const query = {};
+        const doctors = await doctorsCollection.find(query).toArray();
+        // console.log(doctors)
+        res.send(doctors)
+    })
+
+    app.delete('/doctors/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = {_id: new ObjectId(id)};
+        const result = await doctorsCollection.deleteOne(query);
+        res.send(result)
+
     })
       
     }
